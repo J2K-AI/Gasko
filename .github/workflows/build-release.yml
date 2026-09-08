@@ -1,0 +1,62 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛎 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔧 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🤖 Build Android APK (preview)
+        run: eas build --platform android --profile preview --non-interactive --output ./gasko.apk
+
+      - name: 🏷 Get version & date
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          DATE=$(date +'%Y%m%d%H%M')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}-${DATE}" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: "Gasko ${{ steps.meta.outputs.tag }}"
+          body: |
+            ## ⛽ Gasko ${{ steps.meta.outputs.tag }}
+
+            ### Instalación
+            1. Descarga el archivo `gasko.apk`
+            2. En tu Android, activa **"Instalar de fuentes desconocidas"**
+            3. Abre el APK e instala
+
+            ### Cambios
+            - Build automático desde commit `${{ github.sha }}`
+          files: ./gasko.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
