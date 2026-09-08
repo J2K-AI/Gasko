@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GasStation } from '../../core/domain/models/GasStation';
@@ -28,12 +29,28 @@ export function StationCard({
 }: StationCardProps) {
   const price = station.prices[selectedFuel];
 
-  const openNavigation = () => {
+  const openNavigation = async () => {
     const { latitude, longitude } = station.location;
     const label = encodeURIComponent(station.name);
-    Linking.openURL(
-      `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&destination_place_id=${label}&travelmode=driving`
-    );
+
+    // Intent nativo para abrir directamente la app de Google Maps en modo navegación/ruta
+    const googleMapsAppUrl = Platform.select({
+      android: `google.navigation:q=${latitude},${longitude}&mode=d`,
+      ios: `comgooglemaps://?daddr=${latitude},${longitude}&directionsmode=driving`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
+    });
+
+    const webGoogleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&destination_place_id=${label}&travelmode=driving`;
+
+    try {
+      if (googleMapsAppUrl && (await Linking.canOpenURL(googleMapsAppUrl))) {
+        await Linking.openURL(googleMapsAppUrl);
+      } else {
+        await Linking.openURL(webGoogleMapsUrl);
+      }
+    } catch {
+      await Linking.openURL(webGoogleMapsUrl);
+    }
   };
 
   return (

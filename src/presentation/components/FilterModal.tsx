@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Switch,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FilterCriteria, DEFAULT_FILTER_CRITERIA } from '../../core/domain/models/FilterCriteria';
@@ -59,13 +60,21 @@ export function FilterModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Header con margen superior seguro para evitar barra de estado y notch */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={Colors.textPrimary} />
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            style={styles.closeBtn}
+            accessibilityLabel="Cerrar filtros"
+          >
+            <Ionicons name="close" size={26} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>Filtros</Text>
-          <TouchableOpacity onPress={() => setDraft(DEFAULT_FILTER_CRITERIA)}>
+          <TouchableOpacity
+            onPress={() => setDraft(DEFAULT_FILTER_CRITERIA)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.reset}>Restablecer</Text>
           </TouchableOpacity>
         </View>
@@ -158,7 +167,7 @@ export function FilterModal({
             <>
               <SectionTitle>Marcas / Cadenas</SectionTitle>
               <View style={styles.chipRow}>
-                {availableBrands.slice(0, 20).map((brand) => (
+                {availableBrands.map((brand) => (
                   <TouchableOpacity
                     key={brand}
                     style={[styles.chip, draft.brands.includes(brand) && styles.chipActive]}
@@ -201,10 +210,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 12 : Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.surface,
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: Typography.h2,
   reset: { ...Typography.body, color: Colors.primary, fontWeight: '600' },
