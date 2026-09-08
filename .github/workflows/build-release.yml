@@ -2,61 +2,72 @@ name: Build & Release APK
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build-android:
+  build:
     name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🛎 Checkout
+      - name: 🛎 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗 Setup Node.js
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🐢 Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: 🐢 Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: 'npm'
 
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 🔧 Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: 🚀 Expo Prebuild (generate Android native project)
+        run: npx expo prebuild --platform android --clean
 
-      - name: 🤖 Build Android APK (preview)
-        run: eas build --platform android --profile preview --non-interactive --output ./gasko.apk
-
-      - name: 🏷 Get version & date
-        id: meta
+      - name: 📱 Build Android Release APK
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          DATE=$(date +'%Y%m%d%H%M')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag=v${VERSION}-${DATE}" >> $GITHUB_OUTPUT
+          cd android
+          chmod +x gradlew
+          sed -i "s/kotlinVersion = .*/kotlinVersion = '1.9.25'/g" build.gradle || true
+          echo "suppressKotlinVersionCompatibilityCheck=true" >> gradle.properties
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.kotlinVersion=1.9.25 \
+            -Pcompose.kotlin.version.compatibility.check=false
+
+      - name: 📦 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gasko-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
 
       - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: "Gasko ${{ steps.meta.outputs.tag }}"
+          name: "Gasko ${{ github.ref_name }}"
           body: |
-            ## ⛽ Gasko ${{ steps.meta.outputs.tag }}
+            ## ⛽ Gasko ${{ github.ref_name }}
 
-            ### Instalación
-            1. Descarga el archivo `gasko.apk`
+            ### Cómo instalar
+            1. Descarga el archivo `app-release.apk`
             2. En tu Android, activa **"Instalar de fuentes desconocidas"**
+               (Ajustes → Seguridad → Fuentes desconocidas)
             3. Abre el APK e instala
 
-            ### Cambios
-            - Build automático desde commit `${{ github.sha }}`
-          files: ./gasko.apk
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            > Datos de gasolineras en tiempo real del Ministerio (MITECO) · Arquitectura Hexagonal
+          files: android/app/build/outputs/apk/release/*.apk
