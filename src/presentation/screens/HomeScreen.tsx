@@ -229,7 +229,8 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 6 : 0,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 4,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
   },
   header: {
     flexDirection: 'row',
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     marginBottom: Spacing.xs,
   },
-  list: { paddingBottom: Spacing.xl },
+  list: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
   loadingText: { ...Typography.body, color: Colors.textSecondary, marginTop: Spacing.md },
   errorText: {

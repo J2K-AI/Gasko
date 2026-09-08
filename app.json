@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.j2kai.gasko",
+      "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Gasko necesita tu ubicación para encontrar gasolineras cercanas.",
         "NSLocationAlwaysUsageDescription": "Gasko necesita tu ubicación para encontrar gasolineras cercanas."

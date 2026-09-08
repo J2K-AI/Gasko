@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FilterCriteria, DEFAULT_FILTER_CRITERIA } from '../../core/domain/models/FilterCriteria';
@@ -243,6 +244,7 @@ const styles = StyleSheet.create({
   switchLabel: Typography.body,
   applyContainer: {
     padding: Spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? 34 : Spacing.lg,
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,

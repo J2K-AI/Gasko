@@ -1,4 +1,4 @@
-name: Build & Release APK
+name: Build & Release Apps
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
 
@@ -45,25 +45,100 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --warning-mode all
 
-      - name: 📦 Upload APK Artifact
+      - name: 📦 Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Gasko-Release-APK
+          name: Gasko-Android-APK
           path: android/app/build/outputs/apk/release/*.apk
 
-      - name: 🚀 Create GitHub Release
+  build-ios:
+    name: Build iOS App (Simulator / Testing)
+    runs-on: macos-14
+
+    steps:
+      - name: 🛎 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🍎 Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_16.app || sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: 🐢 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🚀 Expo Prebuild (generate iOS native project)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: 📦 Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: 🔨 Build iOS Simulator App (.app.zip)
+        run: |
+          cd ios
+          xcodebuild -workspace Gasko.xcworkspace \
+            -scheme Gasko \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+          # Comprimir el .app generado para distribución/testing
+          cd build/Build/Products/Release-iphonesimulator
+          zip -r ../../../../Gasko-iOS-Simulator.app.zip Gasko.app
+
+      - name: 📦 Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gasko-iOS-Simulator-App
+          path: Gasko-iOS-Simulator.app.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: 🛎 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Android APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Gasko-Android-APK
+          path: release-assets/
+
+      - name: 📥 Download iOS App Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Gasko-iOS-Simulator-App
+          path: release-assets/
+
+      - name: 🚀 Create GitHub Release with Android & iOS
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           name: "Gasko ${{ github.ref_name }}"
           body: |
             ## ⛽ Gasko ${{ github.ref_name }}
 
-            ### Cómo instalar
-            1. Descarga el archivo `app-release.apk`
-            2. En tu Android, activa **"Instalar de fuentes desconocidas"**
-               (Ajustes → Seguridad → Fuentes desconocidas)
-            3. Abre el APK e instala
+            ### 📱 Android
+            - Descarga `app-release.apk`
+            - Activa **"Instalar de fuentes desconocidas"** en tu teléfono
+            - Abre el archivo para instalar
 
-            > Datos de gasolineras en tiempo real del Ministerio (MITECO) · Arquitectura Hexagonal
-          files: android/app/build/outputs/apk/release/*.apk
+            ### 🍎 iPhone / iOS
+            - **Descarga para pruebas**: `Gasko-iOS-Simulator.app.zip` (para arrastrar a simulador de iOS en Mac o AltStore / sideloading).
+            - **Para instalar directamente en tu iPhone físico de inmediato**:
+              1. Instala la app gratuita **Expo Go** desde la App Store en tu iPhone.
+              2. Conéctate a la app o escanea el QR del proyecto.
+
+            ---
+            *Precios actualizados en tiempo real del Ministerio (MITECO) · Arquitectura Hexagonal*
+          files: release-assets/*
