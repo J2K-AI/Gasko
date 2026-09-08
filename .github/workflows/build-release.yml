@@ -53,14 +53,16 @@ jobs:
 
   build-ios:
     name: Build iOS App (Simulator / Testing)
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: 🛎 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🍎 Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode_16.app || sudo xcode-select -switch /Applications/Xcode.app
+      - name: 🍎 Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
 
       - name: 🐢 Set up Node.js
         uses: actions/setup-node@v4
@@ -71,13 +73,8 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install
 
-      - name: 🚀 Expo Prebuild (generate iOS native project)
+      - name: 🚀 Expo Prebuild (generate iOS native project and pods)
         run: npx expo prebuild --platform ios --clean
-
-      - name: 📦 Install CocoaPods
-        run: |
-          cd ios
-          pod install
 
       - name: 🔨 Build iOS Simulator App (.app.zip)
         run: |
@@ -103,19 +100,21 @@ jobs:
     name: Publish GitHub Release
     needs: [build-android, build-ios]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: always() && startsWith(github.ref, 'refs/tags/') && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
 
     steps:
       - name: 🛎 Checkout repository
         uses: actions/checkout@v4
 
       - name: 📥 Download Android APK Artifact
+        if: needs.build-android.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Gasko-Android-APK
           path: release-assets/
 
       - name: 📥 Download iOS App Artifact
+        if: needs.build-ios.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: Gasko-iOS-Simulator-App
