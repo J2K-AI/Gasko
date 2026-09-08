@@ -43,11 +43,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          sed -i "s/kotlinVersion = .*/kotlinVersion = '1.9.25'/g" build.gradle || true
-          echo "suppressKotlinVersionCompatibilityCheck=true" >> gradle.properties
-          ./gradlew assembleRelease --no-daemon \
-            -Pandroid.kotlinVersion=1.9.25 \
-            -Pcompose.kotlin.version.compatibility.check=false
+          ./gradlew assembleRelease --no-daemon --warning-mode all
 
       - name: 📦 Upload APK Artifact
         uses: actions/upload-artifact@v4
