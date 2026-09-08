@@ -90,13 +90,13 @@ export class MitecoGasStationAdapter implements GasStationRepository {
     const prices: FuelPrices = {
       [FuelType.GASOLINA_95]: this.parsePrice(raw['Precio Gasolina 95 E5']),
       [FuelType.GASOLINA_98]: this.parsePrice(raw['Precio Gasolina 98 E5']),
-      [FuelType.GASOLEO_A]: this.parsePrice(raw['Precio Gasóleo A']),
-      [FuelType.GASOLEO_A_PLUS]: this.parsePrice(raw['Precio Gasóleo Premium']),
-      [FuelType.GASOLEO_B]: this.parsePrice(raw['Precio Gasóleo B']),
+      [FuelType.GASOLEO_A]: this.parsePrice(raw['Precio Gasoleo A'] || raw['Precio Gasóleo A']),
+      [FuelType.GASOLEO_A_PLUS]: this.parsePrice(raw['Precio Gasoleo Premium'] || raw['Precio Gasóleo Premium']),
+      [FuelType.GASOLEO_B]: this.parsePrice(raw['Precio Gasoleo B'] || raw['Precio Gasóleo B']),
       [FuelType.GLP]: this.parsePrice(raw['Precio Gases licuados del petróleo']),
       [FuelType.GNC]: this.parsePrice(raw['Precio Gas Natural Comprimido']),
       [FuelType.GNL]: this.parsePrice(raw['Precio Gas Natural Licuado']),
-      [FuelType.HIDROGENO]: this.parsePrice(raw['Precio Hidrógeno']),
+      [FuelType.HIDROGENO]: this.parsePrice(raw['Precio Hidrogeno'] || raw['Precio Hidrógeno']),
     };
 
     return {
@@ -125,7 +125,7 @@ export class MitecoGasStationAdapter implements GasStationRepository {
       return this.cache.data;
     }
 
-    const url = `${MITECO_BASE_URL}/EstacionesTerrestresHist/`;
+    const url = `${MITECO_BASE_URL}/EstacionesTerrestres/`;
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },
     });

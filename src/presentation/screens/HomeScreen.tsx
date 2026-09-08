@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useGasStations } from '../hooks/useGasStations';
@@ -225,7 +226,11 @@ function QuickChip({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+  safe: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 6 : 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
