@@ -28,7 +28,9 @@ export interface GasStationRepository {
   getStationById(id: string): Promise<GasStation | null>;
 
   /**
-   * Devuelve la lista de marcas/cadenas disponibles para los filtros.
+   * Devuelve la lista de marcas/cadenas disponibles para los filtros,
+   * limitada al radio indicado desde la ubicación del usuario (si se proporciona).
    */
-  getAvailableBrands(): Promise<string[]>;
+  getAvailableBrands(location?: GeoLocation, radiusKm?: number): Promise<string[]>;
 }
+

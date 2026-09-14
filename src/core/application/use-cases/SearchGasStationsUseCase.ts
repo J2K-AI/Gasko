@@ -1,5 +1,5 @@
 import { GasStation } from '../../domain/models/GasStation';
-import { FilterCriteria } from '../../domain/models/FilterCriteria';
+import { FilterCriteria, MAX_RADIUS_KM } from '../../domain/models/FilterCriteria';
 import { GasStationRepository } from '../../domain/ports/GasStationRepository';
 import { haversineDistanceKm } from '../../domain/models/GeoLocation';
 import { GeoLocation } from '../../domain/models/GeoLocation';
@@ -23,6 +23,9 @@ export class SearchGasStationsUseCase {
   async execute(input: SearchGasStationsInput): Promise<SearchGasStationsOutput> {
     const { query, currentLocation, filters } = input;
 
+    // El radio efectivo nunca supera MAX_RADIUS_KM
+    const effectiveRadius = Math.min(filters.radiusKm, MAX_RADIUS_KM);
+
     const raw = await this.repository.searchByText(query, filters);
 
     const stations = raw
@@ -32,6 +35,12 @@ export class SearchGasStationsUseCase {
           ? haversineDistanceKm(currentLocation, s.location)
           : undefined,
       }))
+      // Filtrar por radio si hay ubicación disponible
+      .filter((s) =>
+        currentLocation && s.distanceKm !== undefined
+          ? s.distanceKm <= effectiveRadius
+          : true
+      )
       .filter((s) =>
         filters.brands.length === 0
           ? true

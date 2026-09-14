@@ -1,7 +1,7 @@
 import { GasStation, GasStationSchedule, GasStationServices } from '../../../core/domain/models/GasStation';
 import { FuelPrices, FuelType } from '../../../core/domain/models/FuelType';
-import { GeoLocation } from '../../../core/domain/models/GeoLocation';
-import { FilterCriteria } from '../../../core/domain/models/FilterCriteria';
+import { GeoLocation, haversineDistanceKm } from '../../../core/domain/models/GeoLocation';
+import { FilterCriteria, MAX_RADIUS_KM } from '../../../core/domain/models/FilterCriteria';
 import { GasStationRepository } from '../../../core/domain/ports/GasStationRepository';
 
 /**
@@ -217,11 +217,17 @@ export class MitecoGasStationAdapter implements GasStationRepository {
     return all.find((s) => s.id === id) ?? null;
   }
 
-  async getAvailableBrands(): Promise<string[]> {
+  async getAvailableBrands(location?: GeoLocation, radiusKm?: number): Promise<string[]> {
     const all = await this.fetchAllStations();
-    const brandCounts = new Map<string, number>();
 
-    all.forEach((s) => {
+    // Si se proporciona ubicación, limitar las marcas al radio de búsqueda actual
+    const effectiveRadius = Math.min(radiusKm ?? MAX_RADIUS_KM, MAX_RADIUS_KM);
+    const candidates = location
+      ? all.filter((s) => haversineDistanceKm(location, s.location) <= effectiveRadius)
+      : all;
+
+    const brandCounts = new Map<string, number>();
+    candidates.forEach((s) => {
       if (s.brand) {
         brandCounts.set(s.brand, (brandCounts.get(s.brand) || 0) + 1);
       }
@@ -256,9 +262,10 @@ export class MitecoGasStationAdapter implements GasStationRepository {
 
     const presentMajor = majorPriority.filter((b) => brandCounts.has(b));
     const others = Array.from(brandCounts.keys())
-      .filter((b) => !majorPriority.includes(b) && (brandCounts.get(b) || 0) >= 3)
+      .filter((b) => !majorPriority.includes(b) && (brandCounts.get(b) || 0) >= 1)
       .sort((a, b) => (brandCounts.get(b) || 0) - (brandCounts.get(a) || 0));
 
     return [...presentMajor, ...others];
   }
 }
+

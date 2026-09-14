@@ -20,6 +20,8 @@ import { FilterModal } from '../components/FilterModal';
 import { GasStation } from '../../core/domain/models/GasStation';
 import { Colors, Spacing, Radius, Typography } from '../theme';
 import { serviceLocator } from '../../infrastructure/config/serviceLocator';
+import { DEFAULT_FILTER_CRITERIA } from '../../core/domain/models/FilterCriteria';
+
 
 export function HomeScreen() {
   const { stations, loading, error, filters, loadNearby, search, setFilters } = useGasStations();
@@ -35,14 +37,26 @@ export function HomeScreen() {
     (async () => {
       await loadFavorites();
       const loc = await fetchCurrentLocation();
-      if (loc) await loadNearby(loc);
-
-      // Cargar marcas disponibles para los filtros
-      const brands = await serviceLocator.stationRepository.getAvailableBrands();
-      setAvailableBrands(brands);
+      if (loc) {
+        await loadNearby(loc);
+        // Cargar marcas disponibles limitadas al radio actual
+        const brands = await serviceLocator.stationRepository.getAvailableBrands(loc, filters.radiusKm);
+        setAvailableBrands(brands);
+      }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refrescar marcas disponibles cuando cambia el radio de búsqueda
+  useEffect(() => {
+    if (!location) return;
+    serviceLocator.stationRepository
+      .getAvailableBrands(location, filters.radiusKm)
+      .then(setAvailableBrands)
+      .catch(() => {/* ignorar errores silenciosos */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.radiusKm, location]);
+
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) {
@@ -63,8 +77,9 @@ export function HomeScreen() {
     filters.brands.length > 0,
     filters.onlyOpen24h,
     Object.values(filters.services).some(Boolean),
-    filters.radiusKm !== 10,
+    filters.radiusKm !== DEFAULT_FILTER_CRITERIA.radiusKm,
   ].filter(Boolean).length;
+
 
   return (
     <SafeAreaView style={styles.safe}>

@@ -2,10 +2,13 @@ import { FuelType } from './FuelType';
 
 export type SortBy = 'distance' | 'price';
 
+/** Radio máximo permitido en la búsqueda (km) */
+export const MAX_RADIUS_KM = 100;
+
 export interface FilterCriteria {
   /** Combustible principal por el que filtrar/ordenar por precio */
   fuelType: FuelType;
-  /** Radio máximo en km */
+  /** Radio máximo en km (nunca debe superar MAX_RADIUS_KM) */
   radiusKm: number;
   /** Marcas seleccionadas (vacío = todas) */
   brands: string[];

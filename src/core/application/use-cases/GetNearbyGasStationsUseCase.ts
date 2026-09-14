@@ -1,5 +1,5 @@
 import { GasStation } from '../../domain/models/GasStation';
-import { FilterCriteria } from '../../domain/models/FilterCriteria';
+import { FilterCriteria, MAX_RADIUS_KM } from '../../domain/models/FilterCriteria';
 import { GeoLocation, haversineDistanceKm } from '../../domain/models/GeoLocation';
 import { GasStationRepository } from '../../domain/ports/GasStationRepository';
 
@@ -22,7 +22,10 @@ export class GetNearbyGasStationsUseCase {
   async execute(input: GetNearbyGasStationsInput): Promise<GetNearbyGasStationsOutput> {
     const { location, filters } = input;
 
-    const raw = await this.repository.getStationsNear(location, filters.radiusKm);
+    // El radio efectivo nunca supera MAX_RADIUS_KM
+    const effectiveRadius = Math.min(filters.radiusKm, MAX_RADIUS_KM);
+
+    const raw = await this.repository.getStationsNear(location, effectiveRadius);
 
     const stations = raw
       // 1. Calcular distancia y filtrar por radio
@@ -30,7 +33,7 @@ export class GetNearbyGasStationsUseCase {
         ...s,
         distanceKm: haversineDistanceKm(location, s.location),
       }))
-      .filter((s) => s.distanceKm <= filters.radiusKm)
+      .filter((s) => s.distanceKm <= effectiveRadius)
 
       // 2. Filtrar por marcas
       .filter((s) =>
