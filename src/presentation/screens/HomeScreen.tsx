@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,15 +22,17 @@ import { Colors, Spacing, Radius, Typography } from '../theme';
 import { serviceLocator } from '../../infrastructure/config/serviceLocator';
 import { DEFAULT_FILTER_CRITERIA } from '../../core/domain/models/FilterCriteria';
 
-
 export function HomeScreen() {
   const { stations, loading, error, filters, loadNearby, search, setFilters } = useGasStations();
   const { location, address, fetchCurrentLocation } = useLocation();
-  const { favorites, loadFavorites, toggle, isFavorite } = useFavorites();
+  const { loadFavorites, toggle, isFavorite } = useFavorites();
 
   const [query, setQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+
+  // Controla si es el primer render para no ejecutar el efecto de filtros en el mount
+  const isFirstRender = useRef(true);
 
   // Cargar ubicación y gasolineras al montar
   useEffect(() => {
@@ -39,7 +41,6 @@ export function HomeScreen() {
       const loc = await fetchCurrentLocation();
       if (loc) {
         await loadNearby(loc);
-        // Cargar marcas disponibles limitadas al radio actual
         const brands = await serviceLocator.stationRepository.getAvailableBrands(loc, filters.radiusKm);
         setAvailableBrands(brands);
       }
@@ -47,16 +48,27 @@ export function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refrescar marcas disponibles cuando cambia el radio de búsqueda
+  /**
+   * Recarga automática cuando cambia cualquier filtro.
+   * Se salta el primer render (la carga inicial ya la hace el efecto de arriba).
+   */
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (!location) return;
+
+    // Recargar resultados con los filtros nuevos
+    loadNearby(location);
+
+    // Refrescar marcas si cambió el radio
     serviceLocator.stationRepository
       .getAvailableBrands(location, filters.radiusKm)
       .then(setAvailableBrands)
-      .catch(() => {/* ignorar errores silenciosos */});
+      .catch(() => {/* silencioso */});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.radiusKm, location]);
-
+  }, [filters]);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) {
@@ -79,7 +91,6 @@ export function HomeScreen() {
     Object.values(filters.services).some(Boolean),
     filters.radiusKm !== DEFAULT_FILTER_CRITERIA.radiusKm,
   ].filter(Boolean).length;
-
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -197,7 +208,7 @@ export function HomeScreen() {
         />
       )}
 
-      {/* Modal de filtros */}
+      {/* Modal de filtros — onApply solo actualiza el estado; el efecto de filtros recarga automáticamente */}
       <FilterModal
         visible={showFilters}
         filters={filters}
@@ -205,13 +216,13 @@ export function HomeScreen() {
         onApply={(f) => {
           setFilters(f);
           setShowFilters(false);
-          if (location) loadNearby(location);
         }}
         onClose={() => setShowFilters(false)}
       />
     </SafeAreaView>
   );
 }
+
 
 function QuickChip({
   label,

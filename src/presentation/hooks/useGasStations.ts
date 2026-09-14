@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GeoLocation } from '../../core/domain/models/GeoLocation';
 import { GasStation } from '../../core/domain/models/GasStation';
 import { FilterCriteria, DEFAULT_FILTER_CRITERIA } from '../../core/domain/models/FilterCriteria';
@@ -23,34 +23,57 @@ export function useGasStations() {
     filters: DEFAULT_FILTER_CRITERIA,
   });
 
-  const loadNearby = useCallback(async (location: GeoLocation) => {
+  /**
+   * Ref que siempre apunta a los filtros actuales sin crear nuevas referencias
+   * de loadNearby/search en cada cambio de filtros (evita stale closures).
+   */
+  const filtersRef = useRef(state.filters);
+  filtersRef.current = state.filters;
+
+  /**
+   * Carga estaciones cercanas. Acepta un override de filtros para cuando
+   * los filtros nuevos aún no se han confirmado en el estado de React.
+   */
+  const loadNearby = useCallback(async (
+    location: GeoLocation,
+    filtersOverride?: FilterCriteria,
+  ) => {
+    const activeFilters = filtersOverride ?? filtersRef.current;
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const { stations } = await serviceLocator.getNearbyGasStations.execute({
         location,
-        filters: state.filters,
+        filters: activeFilters,
       });
       setState((s) => ({ ...s, stations, loading: false }));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al cargar gasolineras';
       setState((s) => ({ ...s, error: msg, loading: false }));
     }
-  }, [state.filters]);
+  // filtersRef es estable — sin dependencias para mantener referencia estable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const search = useCallback(async (query: string, location?: GeoLocation) => {
+  const search = useCallback(async (
+    query: string,
+    location?: GeoLocation,
+    filtersOverride?: FilterCriteria,
+  ) => {
+    const activeFilters = filtersOverride ?? filtersRef.current;
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const { stations } = await serviceLocator.searchGasStations.execute({
         query,
         currentLocation: location,
-        filters: state.filters,
+        filters: activeFilters,
       });
       setState((s) => ({ ...s, stations, loading: false }));
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error en la búsqueda';
       setState((s) => ({ ...s, error: msg, loading: false }));
     }
-  }, [state.filters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setFilters = useCallback((filters: FilterCriteria) => {
     setState((s) => ({ ...s, filters }));
@@ -71,3 +94,4 @@ export function useGasStations() {
     updateFilter,
   };
 }
+
