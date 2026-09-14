@@ -59,10 +59,10 @@ jobs:
       - name: 🛎 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🍎 Select Xcode 16
+      - name: 🍎 Select Xcode 16.2
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.1'
+          xcode-version: '16.2'
 
       - name: 🐢 Set up Node.js
         uses: actions/setup-node@v4
@@ -84,6 +84,8 @@ jobs:
             -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath build \
+            -disableAutomaticPackageResolution \
+            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO
 
           # Comprimir el .app generado para distribución/testing
@@ -95,6 +97,7 @@ jobs:
         with:
           name: Gasko-iOS-Simulator-App
           path: Gasko-iOS-Simulator.app.zip
+
 
   publish-release:
     name: Publish GitHub Release
