@@ -1,4 +1,4 @@
-import { MitecoGasStationAdapter } from '../adapters/api/MitecoGasStationAdapter';
+import { BackendGasStationAdapter } from '../adapters/api/BackendGasStationAdapter';
 import { ExpoLocationAdapter } from '../adapters/location/ExpoLocationAdapter';
 import { AsyncStorageFavoritesAdapter } from '../adapters/storage/AsyncStorageFavoritesAdapter';
 import { GetNearbyGasStationsUseCase } from '../../core/application/use-cases/GetNearbyGasStationsUseCase';
@@ -12,15 +12,12 @@ import {
 /**
  * Contenedor de Inyección de Dependencias (Service Locator).
  *
- * Para cambiar al futuro backend propio basta con sustituir:
- *   new MitecoGasStationAdapter()
- * por:
- *   new BackendGasStationAdapter(process.env.BACKEND_URL)
- *
- * Sin tocar ni un solo caso de uso ni componente de UI.
+ * Utiliza BackendGasStationAdapter para conectarse a la API de Cloudflare Workers,
+ * manteniendo fallback transparente a MITECO si fuese necesario.
  */
 
-const stationRepository = new MitecoGasStationAdapter();
+const stationRepository = new BackendGasStationAdapter();
+
 const locationService = new ExpoLocationAdapter();
 const favoritesRepository = new AsyncStorageFavoritesAdapter();
 
