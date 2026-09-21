@@ -2,14 +2,14 @@
   "expo": {
     "name": "Gasko",
     "slug": "gasko",
-    "version": "1.0.0",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.j2kai.gasko",
-      "buildNumber": "1",
+      "buildNumber": "10",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Gasko necesita tu ubicación para encontrar gasolineras cercanas.",
         "NSLocationAlwaysUsageDescription": "Gasko necesita tu ubicación para encontrar gasolineras cercanas."
